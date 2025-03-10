@@ -1,0 +1,236 @@
+mv all_rassula.fasta all.rassula.fasta ##rename the files
+sed -i 's/\r//g' final_Russula.fasta ##remove the space
+awk '/^>/{print $0";ref"; next} {print}' updated_Russula.fasta > final_Russula.fasta ## add the ";ref" after the DNA ID
+awk 'NR==FNR{a[$1]=$2; next} /^>/{if(substr($0,2) in a) $0=">"a[substr($0,2)]} {print}' renames2.txt Russula.fasta > updated_Russula.fasta  ##rename the DNA ID
+grep -Fwf filter.txt -A1 OTUs_LULU.fasta  > Russula.fasta ##extract the aimed sequences
+####################
+#for linux
+ sed -i 's/\r$//' pooling8.sh
+conda install -c conda-forge libuv
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+source ~/.bashrc
+ORFfinder -help
+find /gpfs/space/home/meirong/MetaWorks1.13.0/animal/L2_2 -type f -exec sed -i "s/@A01415/@A00920/g" {} \; #for file
+ find /gpfs/space/home/meirong/MetaWorks1.13.0/animal/L2 -type f -name "*.fastq.gz" -exec sh -c 'zcat "{}" | sed "s/@A01415/@A00920/g" | gzip > "{}.temp" && mv "{}.temp" "{}"' \; #for zip, uncompress first and then compress.{} allows find to operate on each found file, and \; signifies the end of the -exec expression.
+
+
+#for trim the sequences
+ #!/bin/bash
+
+module load any/qiime2/2023.7
+
+## Run the pipeline
+    qiime dada2 denoise-paired\
+  --i-demultiplexed-seqs ~/qza/pooling1.qza\
+ --p-trim-left-f 0\
+        --p-trim-left-r 0\
+        --p-trunc-len-f 219\
+        --p-trunc-len-r 216\
+        --o-table ~/qza/pooling1output_table\
+        --o-representative-sequences ~/qza/pooling1rep_seqs\
+        --o-denoising-stats ~/qza/poooling1output_stats\
+        --p-n-threads 10
+
+
+ #for fungal taxonomy in qiime2 and filter,in this analysis I didn't filter the data
+
+ #!/bin/bash
+blastn -query OTUs_LULUcopy.fa -db EUK_long_ID_chim.DB -out blastnresults.out
+
+
+sort -k1,1 -k12,12nr -k11,11n  blastout.txt | sort -u -k1,1 --merge
+
+
+
+ qiime tools import \
+  --type 'FeatureData[Sequence]' \
+  --input-path EUK_ITS_tax.fasta\
+  --output-path eukaryome_seq.qza
+
+qiime tools import \
+  --type 'FeatureData[Taxonomy]' \
+  --input-format HeaderlessTSVTaxonomyFormat \
+  --input-path EUK_ITS_tax.tsv \
+  --output-path eukaryome_tax.qza
+
+  biom convert -i alltable.txt -o output.biom --table-type="OTU table" --to-json
+  biom convert -i alltable.txt -o output.biom --table-type="OTU table" --to-hdf5
+
+
+  biom convert -i feature-table.biom -o fungi_substrate10_10.txt --to-tsv
+
+
+  qiime quality-control evaluate-composition \
+  --i-expected-features expected-features.qza \
+  --i-observed-features observed-features.qza \
+  --o-visualization xtalk-report.qzv
+
+
+qiime tools import \
+  --type FeatureTable[Frequency] \
+  --input-path observed.biom \
+  --output-path observed.qza
+
+qiime tools import \
+  --type FeatureTable[Frequency] \
+  --input-path observed.biom \
+  --output-path observed.qza
+
+
+  qiime quality-control evaluate-composition \
+  --i-expected-features observed.qza \
+  --i-observed-features repeat.qza \
+  --o-visualization xtalk-report.qzv
+
+  qiime feature-table relative-frequency --i-table observed.qza --o-relative-frequency-table relative_observed.qza
+
+  qiime feature-table relative-frequency --i-table repeat.qza --o-relative-frequency-table relative_repeat.qza
+
+  qiime feature-table group \
+  --i-table alltable.qza \
+  --p-axis 'sample' \
+  --m-metadata-file taxonomy.qza \
+  --m-metadata-column Taxon \
+  --o-grouped-table grouped-feature-table.qza
+
+qiime feature-table summarize \
+--i-table fungi_diversity_sample10.qza \
+--o-visualization fungi_diversity_sample10.qzv
+
+#for animal(10)
+#for fungi_substrate (10,abundance1-9 only occur in 1-2 place,sample10)
+#for bacteria (44, 3/4 quartile is 44 and majority of otu only occur in 1-2 place)
+#for fungi_diversity (10, 3/4 quartile is 10, and sample 10)
+qiime feature-table filter-features \
+  --i-table animal.qza \
+  --p-min-frequency 10 \
+  --o-filtered-table animal10qza
+
+  qiime feature-table filter-samples \
+  --i-table fungi_diversity10.qza \
+  --p-min-frequency 10 \
+  --o-filtered-table fungi_diversity_sample10.qza
+
+
+  qiime tools export \
+  --input-path animal10.qza \
+  --output-path animal10
+
+
+  
+
+qiime tools import \
+  --type FeatureTable[Frequency] \
+  --input-path 3output.biom \
+  --output-path 3output.qza
+
+qiime feature-table merge --i-tables 1output.qza  2output.qza  3output.qza  4output.qza  5output.qza  6output.qza  7output.qza  8output.qza  9output.qza  10output.qza  --p-overlap-method sum --o-merged-table merged_table.qza
+
+
+module load any/qiime2/2023.7
+
+biom convert -i 6poolingtable.txt -o 6output.biom --table-type="OTU table" --to-json
+
+  qiime tools export \
+  --input-path pooling10_otu_table.qza \
+  --output-path pooling10table
+
+  biom convert -i feature-table.biom -o bacteria.txt --to-tsv
+  grep -c ">" dna-sequences.fasta
+
+
+qiime vsearch cluster-features-de-novo   --i-table merged_table.qza --i-sequences merged_rep-seqs.qza   --p-perc-identity 0.98  --o-clustered-table table-dn-98.qza   --o-clustered-sequences rep-seqs-dn-98.qza
+
+
+ qiime tools import \
+  --type 'FeatureData[Sequence]' \
+  --input-path 1cat.fasta.gz\
+  --output-path 1.qza
+
+  biom convert -i pooling7.txt -o pooling7.biom --table-type="OTU table" --to-hdf5
+
+  qiime tools import \
+  --type FeatureTable[Frequency] \
+  --input-path pooling10.biom \
+  --output-path pooling10_table.qza
+
+  qiime tools import \
+  --input-path pooling7.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path pooling7_table.qza
+
+  sbatch snakeall.sh
+nextflow run vmikk/NextITS -r main \
+-w /gpfs/space/home/meirong/fungi1-10/L3/.nextflow/cache/95403097-a927-425e-8ee4-864b69aae3ee/db
+  -profile singularity \
+  -resume \
+  --input          "$(pwd)/Pooling3_bc2051.hifi_reads.fastq.gz" \
+  --barcodes       "$(pwd)/pooling3.fasta" \
+  --primer_forward "GTACACACCGCCCGTCG" \
+  --primer_reverse "CCTSCSCTTANTDATATGC" \
+  --chimera_db     "$(pwd)/UN95_chimera.udb" \
+  --its_region     "full" \
+  --blast_taxdb    "false" \
+  --outdir         "Results" \
+  -work-dir        "pooling3wd" \
+  -qs 30
+
+
+  qiime dada2 denoise-paired \
+--i-demultiplexed-seqs 6primer-trimmed-demux.qza \
+--p-trim-left-f 0 \
+--p-trim-left-r 0 \
+--p-trunc-len-f 219 \
+--p-trunc-len-r 216 \
+--o-table pooling6_otu_table.qza \
+--o-representative-sequences pooling6_rep-seqs.qza  \
+--o-denoising-stats pooling6_denoising-stats.qza \
+--verbose
+
+
+qiime feature-table tabulate-seqs \
+  --i-data rep-seqs.qza \
+  --o-visualization rep-seqs.qzv
+
+qiime feature-table merge-seqs \
+  --i-data pooling1_rep-seqs.qza pooling2_rep-seqs.qza pooling3_rep-seqs.qza pooling4_rep-seqs.qza pooling5_rep-seqs.qza pooling6_rep-seqs.qza pooling7_rep-seqs.qza pooling8_rep-seqs.qza pooling9_rep-seqs.qza pooling10_rep-seqs.qza\
+   --o-merged-data allseq.qza
+
+   qiime vsearch cluster-features-de-novo   --i-table alltable.qza --i-sequences rep-seqs.qza   --p-perc-identity 0.97  --o-clustered-table table-dn-97.qza   --o-clustered-sequences rep-seqs-dn-97.qza
+
+     qiime tools export \
+  --input-path pooling6_table.qza \
+  --output-path pooling6_table
+
+    biom convert -i feature-table.biom -o all_table.txt --to-tsv
+    biom convert -i pooling6_table.txt -o pooling6_table.biom --table-type="OTU table" --to-hdf5
+
+      qiime tools import \
+  --input-path pooling6_table.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path pooling6_table.qza
+
+
+      qiime tools export \
+  --input-path mangrove_taxonomy.qza \
+  --output-path magrove_taxonomy
+    grep -c ">" dna-sequences.fasta
+
+    qiime tools import \
+  --input-path OTUs_LULU.fa \
+  --output-path rep_seqs.qza \
+  --type 'FeatureData[Sequence]'
+
+
+
+     qiime tools import \
+  --input-path mangrove.fasta \
+  --output-path mangrove.qza \
+  --type 'FeatureData[Sequence]'
+
+  qiime feature-classifier classify-sklearn \
+--i-classifier classifier.qza \
+--i-reads mangrove.qza \
+--o-classification mangrove_taxonomy.qza
