@@ -1,6 +1,6 @@
 mv all_rassula.fasta all.rassula.fasta ##rename the files
 sed -i 's/\r//g' final_Russula.fasta ##remove the space
-awk '/^>/{print $0";ref"; next} {print}' updated_Russula.fasta > final_Russula.fasta ## add the ";ref" after the DNA ID
+awk '/^>/{print $0";ref"; next} {print}' updated_Russula.fasta > final_Russula.fasta ## add the ";ref" after the DNA ID; next → Skips the rest of the script for this line (so it won’t go to {print} below)
 awk 'NR==FNR{a[$1]=$2; next} /^>/{if(substr($0,2) in a) $0=">"a[substr($0,2)]} {print}' renames2.txt Russula.fasta > updated_Russula.fasta  ##rename the DNA ID
 grep -Fwf filter.txt -A1 OTUs_LULU.fasta  > Russula.fasta ##extract the aimed sequences
 ####################
