@@ -7,6 +7,11 @@ awk '{print $1"\t"$1"_"$2}' formatted_renames.txt > formatted_renames2.txt
 sed -i 's/[[:space:]]*$//' russula.2.fasta
 grep -Fwf thelephoraceae -A1 General_EUK_ITS_v1.9.3.fasta | grep -v "^--$" > thelephoraceae.fasta ## remove __
 ####################
+iqtree -s all_ligned_thelephoraceae2.fasta -m MFP -bb 1000 -alrt 1000 -nt AUTO -pre thelephoraceae
+mafft --reorder --maxiterate 1000 all_ligned_thelephoraceae.fasta > all_ligned_thelephoraceae2.fasta
+awk 'NR==FNR{a[$1]=$2; next} /^>/{header=substr($0,2); if(header in a) $0=">"a[header]} {print $0}' formatted_renames2.txt russula.2.fasta > updated_Russula.fasta
+awk '{print $1"\t"$1"_"$2}' formatted_renames.txt > formatted_renames2.txt
+grep -oE "[^(),:;]+" russula.treefile | sort -u > artefact.txt
 #for linux
  sed -i 's/\r$//' pooling8.sh
 conda install -c conda-forge libuv
