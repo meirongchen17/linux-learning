@@ -10,8 +10,8 @@ grep -Fwf <(cut -f1 Russula.artefact2.txt) -A1 OTUs_LULU2.fasta | grep -v "^--$"
 cut -f2 Russula.artefact2.txt > xtry.t
 grep -Fwf xtry.t -A1 General_EUK_ITS_v1.9.3.fasta | grep -v "^--$" > russula2.fasta
 cat russula2.fasta russula.fasta > combined_russula.fasta
-grep -Fwf <(cut -f2 -d , Thelephoraceae.artefact2.csv | sed 's/\r//g') -A1 General_EUK_ITS_v1.9.3.fasta
- | grep -v "^--$" > thelephoraceae2.fasta
+mafft --auto --thread 4 Thelephoraceae3.fasta > align.thelephoraceae.fasta
+grep -Fwf <(cut -f2 -d , Thelephoraceae.artefact2.csv | sed 's/\r//g') -A1 General_EUK_ITS_v1.9.3.fasta | grep -v "^--$" > thelephoraceae2.fasta
 ####################
 iqtree -s all_ligned_thelephoraceae2.fasta -m MFP -bb 1000 -alrt 1000 -nt AUTO -pre thelephoraceae
 mafft --reorder --maxiterate 1000 all_ligned_thelephoraceae.fasta > all_ligned_thelephoraceae2.fasta
