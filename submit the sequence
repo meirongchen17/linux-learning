@@ -1,0 +1,11 @@
+ftp webin2.ebi.ac.uk ##log in
+for file in *; do   mv "$file" "bacteriaDNA$file"; done ##add "bacteriaDNA" in front of the filenames
+for file in *; do     [ -f "$file" ] && md5sum "$file" | awk -v name="${file%.*}" '{print name "\t" $1}' >> bacteriaDNAmd5_table.tsv; done ##calculate the md5
+for f in *REPEAT*; do mv "$f" "${f//REPEAT/}"; done ##replace the REPEAT with ""
+for f in *.fastq.gz; do    mv "$f" "${f#pooling7_}"; done
+for f in *_*_L001_R1_001.fastq.gz; do   newname=$(echo "$f" | sed -E 's/_[A-Z]+_/_/');   if [[ "$f" != "$newname" ]]; then     mv "$f" "$newname";   fi; done ##'s/_[A-Z]+_/_/
+for f in *_*_L001_R2_001.fastq.gz; do   newname=$(echo "$f" | sed -E 's/_[0-9]+_/_/g');   mv "$f" "$newname"; donefor f in *_*_L001_R2_001.fastq.gz; do  ### s/_[0-9]+_/_/g
+for f in *_*_L001_R2_001.fastq.gz; do   newname=$(echo "$f" | sed -E 's/_[0-9]+_/_/g');   mv "$f" "$newname"; done
+qiime tools extract --input-path 8primer-trimmed-demux.qza --output-path pooling8
+conda info -e
+
