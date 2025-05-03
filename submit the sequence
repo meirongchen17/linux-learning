@@ -1,4 +1,7 @@
 ftp webin2.ebi.ac.uk ##log in
+curl -v --user Webin-700908 ftp://webin2.ebi.ac.uk/
+lftp -u Webin-700908,'Your$Tricky&Password' ftp://webin2.ebi.ac.uk
+
 for file in *; do   mv "$file" "bacteriaDNA$file"; done ##add "bacteriaDNA" in front of the filenames
 for file in *; do     [ -f "$file" ] && md5sum "$file" | awk -v name="${file%.*}" '{print name "\t" $1}' >> bacteriaDNAmd5_table.tsv; done ##calculate the md5
 for f in *REPEAT*; do mv "$f" "${f//REPEAT/}"; done ##replace the REPEAT with ""
@@ -107,5 +110,28 @@ EOT
     echo "Missing file: $fastq"
   fi
 done
+####renames the files in the folder
+#!/bin/bash
+
+for file in fungiunpooled*.fq.gz; do
+  [[ -e "$file" ]] || continue
+
+  # Replace "fungiunpooled" with "fungi.unpooled"
+  newname="${file//fungiunpooled/fungi.unpooled}"
+
+  # Prevent overwriting
+  if [[ -e "$newname" ]]; then
+    echo "Skipping: $file -> $newname (already exists)"
+  else
+    mv -- "$file" "$newname"
+    echo "Renamed: $file -> $newname"
+  fi
+done
+###rename sequences' header
+find orig -name "*.fq.gz" \
+  | parallel -j 5 '
+    seqkit seq --only-id {} | gzip > {.}.onlyid.gz && \
+    mv {.}.onlyid.gz {}
+  '
 
 
