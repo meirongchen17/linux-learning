@@ -8,4 +8,104 @@ for f in *_*_L001_R2_001.fastq.gz; do   newname=$(echo "$f" | sed -E 's/_[0-9]+_
 for f in *_*_L001_R2_001.fastq.gz; do   newname=$(echo "$f" | sed -E 's/_[0-9]+_/_/g');   mv "$f" "$newname"; done
 qiime tools extract --input-path 8primer-trimmed-demux.qza --output-path pooling8
 conda info -e
+####paired sequence submission
+#!/bin/bash
+for fastq1 in *L001_R1_001.fastq.gz; do
+  fastq2="${fastq1/L001_R1_001.fastq.gz/L001_R2_001.fastq.gz}"
+
+  if [[ -f "$fastq2" ]]; then
+    full_name=$(echo "$fastq1" | sed 's/_L001_R1_001.fastq.gz//')
+    sample_name=$(echo "$full_name" | sed 's/^animal\.DNA//')
+
+    # Add "unpooled" to the sample name
+    sample_name="DNA$sample_name"
+
+    cat > "${full_name}_manifest.tab" <<EOT
+STUDY PRJEB88999
+SAMPLE $sample_name
+NAME $full_name
+PLATFORM ILLUMINA
+INSTRUMENT Illumina NovaSeq 6000
+LIBRARY_NAME $full_name
+LIBRARY_SOURCE METAGENOMIC
+LIBRARY_SELECTION PCR
+LIBRARY_STRATEGY AMPLICON
+INSERT_SIZE 300
+FASTQ $(pwd)/$fastq1
+FASTQ $(pwd)/$fastq2
+EOT
+
+    docker run \
+      -v $(pwd):$(pwd) \
+      enasequence/webin-cli \
+      -context=reads \
+      -manifest="$(pwd)/${full_name}_manifest.tab" \
+      -inputdir="$(pwd)" \
+      -userName="Webin-70089" \
+      -password="383961Cmr%" \
+      -validate \
+      &> "${full_name}_validation.log"
+
+    if [[ $? -eq 0 ]]; then
+      echo "Processed: $sample_name successfully"
+    else
+      echo "Error processing: $sample_name"
+    fi
+  else
+    echo "Missing R2 file for $fastq1"
+  fi
+done
+
+###single data submission
+#!/bin/bash
+
+# Set Webin login info
+WEBIN_USER="Webin-70089"
+WEBIN_PASSWORD="383961Cmr."
+
+for fastq in fungi.soil*.fq.gz; do
+  if [[ -f "$fastq" ]]; then
+    # Remove '.fq.gz' and remove prefix 'fungisoil'
+    full_name="${fastq%.fq.gz}"
+    clean_sample="${full_name#fungi.soil}"
+    sample_name="soil${clean_sample}"   # <<< Add "pooled" prefix to sample name
+
+    # Create manifest
+    cat > "${full_name}_manifest.tab" <<EOT
+STUDY PRJEB88999
+SAMPLE $sample_name
+NAME $sample_name
+PLATFORM PACBIO_SMRT
+INSTRUMENT Sequel II
+LIBRARY_NAME $sample_name
+LIBRARY_SOURCE METAGENOMIC
+LIBRARY_SELECTION PCR
+LIBRARY_STRATEGY AMPLICON
+FASTQ $(pwd)/$fastq
+EOT
+
+    # Run Webin-CLI validation
+    docker run \
+      -v "$(pwd):$(pwd)" \
+      enasequence/webin-cli \
+      -context=reads \
+      -manifest="$(pwd)/${full_name}_manifest.tab" \
+      -inputdir="$(pwd)" \
+      -userName="$WEBIN_USER" \
+      -password="$WEBIN_PASSWORD" \
+      -validate \
+      &> "${full_name}_validation.log"
+
+    # Check validation result
+    if [[ $? -eq 0 ]]; then
+      echo "Processed: $sample_name successfully"
+    else
+      echo "Error processing: $sample_name"
+    fi
+
+  else
+    echo "Missing file: $fastq"
+  fi
+done
+
 
